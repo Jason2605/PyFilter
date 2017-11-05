@@ -26,36 +26,34 @@ class PyFilter:
         self.__setup_database(data)
 
     def read_files(self, pattern_type="ssh"):
-        file = self.rules[pattern_type]["log_file"]
-        if not file:
+        log_file = self.rules[pattern_type]["log_file"]
+        if not log_file:
             print("No file to check within rule: {}".format(pattern_type.title()))
             return
         print("Checking {} logs".format(pattern_type.title()))
-        if not os.path.isfile(file):
-            print("WARNING: file {} could not be found".format(file))
+        if not os.path.isfile(log_file):
+            print("WARNING: file {} could not be found".format(log_file))
             return
-        inode = os.stat(file).st_ino
-        with open(file) as f:
-            while True:
-                where = f.tell()
-                line = f.readline()
-                if not line:
-                    if self.settings["run_once"]:
-                        return
-                    if inode != os.stat(file).st_ino:
-                        f.seek(0)
-                        inode = os.stat(file).st_ino
+        while True:
+            inode = os.stat(log_file).st_ino
+            with open(log_file) as f:
+                while True:
+                    where = f.tell()
+                    line = f.readline()
+                    if not line:
+                        if self.settings["run_once"]:
+                            return
+                        if inode != os.stat(log_file).st_ino:
+                            break
+                        time.sleep(1)
+                        f.seek(where)
                         continue
-                    time.sleep(1)
-                    f.seek(where)
-                    continue
-                else:
                     for regex_pattern in self.regex[pattern_type]:
                         found = regex_pattern.findall(line)
                         if found:
                             found = found[0]
                             self.filter(pattern_type, found)
-                time.sleep(0.0001)  # Ensure it doesnt kill CPU
+                    time.sleep(0.0001)  # Ensure it doesnt kill CPU
 
     def add_ip(self, ip, pattern_type):
         t = datetime(2000, 1, 1, 1, 1, 1)
