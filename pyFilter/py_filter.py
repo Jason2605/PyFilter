@@ -169,7 +169,7 @@ class PyFilter:
                     cursor.execute('''CREATE TABLE banned_ip (ip text PRIMARY KEY)''')
                     self.sqlite_connection.commit()
                 except Exception as exc:
-                    print("The following exception as occurred;", exc)
+                    print("The following exception has occurred: ", str(exc))
                 finally:
                     cursor.close()
         else:
