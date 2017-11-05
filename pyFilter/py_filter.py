@@ -80,7 +80,9 @@ class PyFilter:
             return self.redis_connection.get(ip)
         cursor = self.sqlite_connection.cursor()
         cursor.execute("SELECT ip FROM banned_ip WHERE ip = ?", (ip,))
-        return cursor.fetchone()
+        ip = cursor.fetchone()
+        cursor.close()
+        return ip
 
     def save_ip(self, ip):
         if self.settings["database"] == "redis":
@@ -89,10 +91,11 @@ class PyFilter:
         cursor = self.sqlite_connection.cursor()
         try:
             cursor.execute("INSERT INTO banned_ip VALUES (?)", (ip,))
+            self.sqlite_connection.commit()
         except sqlite3.IntegrityError:
             print("IP already in the database")
-
-        self.sqlite_connection.commit()
+        finally:
+            cursor.close()
 
     def filter(self, ip, pattern_type, time_object):
         old_time_object = self.ip_dict[pattern_type][ip]["last_request"]
@@ -162,8 +165,13 @@ class PyFilter:
             self.sqlite_connection = sqlite3.connect(database)
             if not created:
                 cursor = self.sqlite_connection.cursor()
-                cursor.execute('''CREATE TABLE banned_ip (ip text PRIMARY KEY)''')
-                self.sqlite_connection.commit()
+                try:
+                    cursor.execute('''CREATE TABLE banned_ip (ip text PRIMARY KEY)''')
+                    self.sqlite_connection.commit()
+                except Exception as exc:
+                    print("The following exception has occurred: ", str(exc))
+                finally:
+                    cursor.close()
         else:
             raise DatabaseConfigException("Database has to be redis or sqlite!")
 
