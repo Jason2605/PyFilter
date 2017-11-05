@@ -157,13 +157,10 @@ class PyFilter:
                 subprocess.call("iptables-restore < Config/blacklist.v4", shell=True)
 
         for key in self.rules:
-            t = threading.Thread(target=self.read_files, args=(key,))
+            t = threading.Thread(target=self.read_files, args=(key,), name=key)
             t.daemon = True
             t.start()
 
-        t = threading.Thread(target=self.make_persistent())
+        t = threading.Thread(target=self.make_persistent, name="persistent")
         t.daemon = True
         t.start()
-
-        time.sleep(5)
-        print(threading.active_count())
