@@ -63,23 +63,24 @@ Configuration:
     "reload_iptables": true,
     "rules": {
       "ssh": {
-        "log_files": [["/var/log/auth.log"]],
+        "log_file": "/var/log/auth.log",
         "regex_patterns": [
-          "([a-zA-Z]{3} \\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
-          "([a-zA-Z]{3} \\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
-          "([a-zA-Z]{3} \\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*"
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*"
         ],
         "time_format": "%b %d %H:%M:%S"
       },
       "mysql": {
-        "log_files": [],
+        "log_file": "",
         "regex_patterns": [
           "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) .* Access denied for user '.*'@'(.*)' .*"
         ],
         "time_format": "%Y-%m-%d  %H:%M:%S"
       },
       "apache": {
-        "log_files": [],
+        "log_file": "",
         "regex_patterns": [
           ["(\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}) .* \\[(.*)\\] \"POST /({}) HTTP/1.1\" (\\d{{0,3}})", "urls"]
         ],
@@ -88,7 +89,7 @@ Configuration:
         "http_status_blocks": [200]
       },
       "nginx": {
-        "log_files": [],
+        "log_file": "",
         "regex_patterns": [
           ["(\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}) .* \\[(.*)\\] \"POST /({}) HTTP/1.1\" (\\d{{0,3}})", "urls"]
         ],
@@ -105,6 +106,10 @@ Configuration:
     "host": "127.0.0.1",
     "password": null,
     "database": 0
+  },
+  "logging": {
+    "active": true,
+    "directory": "Logs"
   }
 }
 ```
@@ -128,8 +133,7 @@ To swap from sqlite to redis, change the current value `"database": "sqlite"` to
 
 ### Log files
 
-`"log_files": [["/var/log/auth.log"]]` Since the log file is within `[]` pyFilter will search for any files with the pattern of <file>.[0-9] (0-9 being any number within that range), so using the default config value, this will search and return `"/var/log/auth.log.1"` for example.
-You can also individually specify files within the list, for example: `"log_files": ["/var/log/auth.log", "/var/log/auth.log.1"]` and both will be searched without looking for extra files. **Note: Notice the log files are not within `[]`**.
+`"log_file": "/var/log/auth.log"` This will read from the specified file, and add bans as the events happen. 
 
 ### Regex patterns
 
