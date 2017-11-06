@@ -98,14 +98,15 @@ class PyFilter:
                                   .format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ip, pattern_type)
 
                     self.log(log_message)
-                    print(log_message)
+                    print(log_message, end="")
 
-    def blacklist(self, ip):
+    def blacklist(self, ip, save=True):
         blacklist_string = "iptables -I INPUT -s {} -j {}".format(ip, self.settings["deny_type"])
         subprocess.call(blacklist_string.split())
         self.ip_blacklisted = True
-        with self.lock:
-            self.database_connection.insert(ip)
+        if save:
+            with self.lock:
+                self.database_connection.insert(ip)
 
     def log(self, log_message):
         config_dir = self.log_settings["directory"]
@@ -126,6 +127,18 @@ class PyFilter:
                 subprocess.call("iptables-save > Config/blacklist.v4", shell=True)
                 self.ip_blacklisted = False
                 time.sleep(300)
+
+    def monitor_redis(self):
+        while True:
+            ip_list = self.database_connection.scan()
+            if ip_list:
+                for ip in ip_list:
+                    ip_string = ip.split("-")
+                    ip = ip_string[0]
+                    print("Found IP: {} from server: {} - Blacklisting".format(ip, ip_string[2]))
+                    self.blacklist(ip, False)
+                self.database_connection.rename_keys(ip_list)
+            time.sleep(self.database_connection.check_time)
 
     def __setup_regex(self):
         self.regex = {}
@@ -154,11 +167,15 @@ class PyFilter:
                 print("Updating firewall rules!")
                 subprocess.call("iptables-restore < Config/blacklist.v4", shell=True)
 
+        threads = []
         for key in self.rules:
-            t = threading.Thread(target=self.read_files, args=(key,), name=key)
+            threads.append(threading.Thread(target=self.read_files, args=(key,), name=key))
+        threads.append(threading.Thread(target=self.make_persistent, name="persistent"))
+        for t in threads:
             t.daemon = True
             t.start()
 
-        t = threading.Thread(target=self.make_persistent, name="persistent")
-        t.daemon = True
-        t.start()
+        if self.settings["database"] == "redis":
+            if self.database_connection.sync_active:
+                self.monitor_redis()
+        t.join()  # Keeps main thread open if redis monitoring isnt enabled

@@ -3,7 +3,7 @@ pyFilter aims to filter out all of the requests that are not legitimate to your 
 
 By default pyFilter is configured to read from `/var/log/auth.log` for incoming SSH requests, however there are options for `Apache, Nginx and MySQL` too.
 
-pyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. pyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed.
+pyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. pyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed. However redis has support for cross server ban syncing (more info below).
 
 Installation:
 -------------
@@ -105,7 +105,12 @@ Configuration:
   "redis": {
     "host": "127.0.0.1",
     "password": null,
-    "database": 0
+    "database": 0,
+    "sync_bans": {
+      "active": true,
+      "name": "1",
+      "check_time": 600
+    }
   },
   "logging": {
     "active": true,
@@ -186,6 +191,32 @@ Check time is the amount of time in seconds it takes to do each rule, for exampl
 ### Redis - Optional
 
 Host is the ip address of where the redis server is located. The `"database"` option is the database you want the banned IP addresses to be stored in, by default within redis the options are 0 to 15. If you have a password for your redis server change `"password": null` to `"password": "your password"`.
+
+Cross server ban syncing:
+-------------------------
+
+Cross server ban syncing allows IP addresses to be banned across multiple servers if this is enabled. For example if IP address X was banned on server Y, and server Z has ban syncing enabled it will blacklist that IP even if that IP has not met the required failed attempts on **that** server.
+
+```json
+    "sync_bans": {
+      "active": true,
+      "name": "1",
+      "check_time": 600
+    }
+```
+This is the section for ban syncing.
+
+### Active
+
+Enables/disables cross server ban syncing.
+
+### Name
+
+This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This can be any string value, for example `"name": "VPS-London"`.
+
+### Check time
+
+The amount of time in seconds the redis server will be polled to check for new bans, and sync them.
 
 Running:
 --------

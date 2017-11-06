@@ -52,7 +52,12 @@
   "redis": {
     "host": "127.0.0.1",
     "password": null,
-    "database": 0
+    "database": 0,
+    "sync_bans": {
+      "active": true,
+      "name": "1",
+      "check_time": 600
+    }
   },
   "logging": {
     "active": true,
