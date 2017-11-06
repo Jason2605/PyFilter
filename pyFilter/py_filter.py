@@ -135,7 +135,10 @@ class PyFilter:
                 for ip in ip_list:
                     ip_string = ip.split("-")
                     ip = ip_string[0]
-                    print("Found IP: {} from server: {} - Blacklisting".format(ip, ip_string[2]))
+                    log_message = "Found IP: {} from server: {} - Blacklisting".format(ip, ip_string[2])
+                    print(log_message)
+                    if self.log_settings["active"]:
+                        self.log(log_message)
                     self.blacklist(ip, False)
                 self.database_connection.rename_keys(ip_list)
             time.sleep(self.database_connection.check_time)
@@ -178,4 +181,4 @@ class PyFilter:
         if self.settings["database"] == "redis":
             if self.database_connection.sync_active:
                 self.monitor_redis()
-        t.join()  # Keeps main thread open if redis monitoring isnt enabled
+        threads[0].join()  # Keeps main thread open if redis monitoring isnt enabled
