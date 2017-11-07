@@ -17,7 +17,7 @@ Optional:
 
 To install pyFilter download the files from this repo via your preferred method, for example `git clone https://github.com/Jason2605/pyFilter.git`.
 
-**Optional:** `install.sh` will setup a service for pyFilter, and you can start/stop it by using `sudo systemctl start/stop pyFilter` and get the status of the pyFilter service using `sudo systemctl status pyFilter`.
+**Optional:** `install.sh` will setup a service for pyFilter, and you can start/stop it by using `sudo systemctl start/stop pyFilter` and get the status of the pyFilter service using `sudo systemctl status pyFilter`. To run this make sure you give permission to the `install.sh` file `sudo chmod +x install.sh`.
 
 **Note: The default configuration file runs on sqlite, so installing py-redis and redis are optional.**
 
@@ -68,7 +68,8 @@ Configuration:
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
-          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*"
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Unable to negotiate with (.*) port .*"
         ],
         "time_format": "%b %d %H:%M:%S"
       },
@@ -195,6 +196,8 @@ Host is the ip address of where the redis server is located. The `"database"` op
 Cross server ban syncing:
 -------------------------
 
+**Note: In its current state ban syncing will only work with two servers.**
+
 Cross server ban syncing allows IP addresses to be banned across multiple servers if this is enabled. For example if IP address X was banned on server Y, and server Z has ban syncing enabled it will blacklist that IP even if that IP has not met the required failed attempts on **that** server.
 
 ```json
@@ -212,7 +215,7 @@ Enables/disables cross server ban syncing.
 
 ### Name
 
-This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This can be any string value, for example `"name": "VPS-London"`.
+This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This needs to be a digit from 0 to 9, for example `"name": "5"`.
 
 ### Check time
 
@@ -220,7 +223,7 @@ The amount of time in seconds the redis server will be polled to check for new b
 
 Running:
 --------
-Note: To run this you will need sudo privileges, and will need to ensure the bash files have correct permissions.
+Note: To run this you will need sudo privileges, and will need to ensure the bash files have correct permissions. If not grant using `sudo chmod +x run.sh`.
 ```
 $ ./run.sh
 ```

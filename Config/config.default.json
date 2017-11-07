@@ -15,7 +15,8 @@
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
-          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*"
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Unable to negotiate with (.*) port .*"
         ],
         "time_format": "%b %d %H:%M:%S"
       },
