@@ -140,8 +140,8 @@ class PyFilter(object):
             self.blacklist(ip)
 
             if self.log_settings["active"]:
-                log_msg = "IP: {} has been blacklisted and the firewall rules have been updated. "
-                "Acquired 5 bad connections via {}.\n".format(ip, pattern_type)
+                log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
+                          " Acquired 5 bad connections via {}.\n".format(ip, pattern_type)
 
                 self.log(log_msg)
                 print(log_msg, end='')
