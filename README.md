@@ -196,8 +196,6 @@ Host is the ip address of where the redis server is located. The `"database"` op
 Cross server ban syncing:
 -------------------------
 
-**Note: In its current state ban syncing will only work with two servers.**
-
 Cross server ban syncing allows IP addresses to be banned across multiple servers if this is enabled. For example if IP address X was banned on server Y, and server Z has ban syncing enabled it will blacklist that IP even if that IP has not met the required failed attempts on **that** server.
 
 ```json
@@ -215,7 +213,7 @@ Enables/disables cross server ban syncing.
 
 ### Name
 
-This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This needs to be a digit from 0 to 9, for example `"name": "5"`.
+This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This name can be anything as long as it is unique, for example `"name": "VPS-Lon-1"`.
 
 ### Check time
 

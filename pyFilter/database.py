@@ -33,8 +33,7 @@ class RedisConnection:
         Args:
             ip: IP address to be inserted into redis
         """
-        ip = "{}-pyFilter-{}".format(ip, self.name)
-        self.redis_connection.set(ip, "Banned")
+        self.redis_connection.hmset(ip, {self.name: 1})
 
     def select(self, ip):
         """
@@ -44,41 +43,37 @@ class RedisConnection:
             ip: IP to select from Redis
 
         Returns:
-            Returns the IP address as a string if found, else returns None
+            Returns 1 (integer) if IP address is found else None
         """
-        ip_formatted = "{}-pyFilter-{}".format(ip, self.name)
-        found = self.redis_connection.get(ip_formatted)
-        if found:
-            return found
-        return self.redis_connection.get(ip)
+        return self.redis_connection.hget(ip, self.name)
 
     def scan(self):
         """
-        Get a list of keys matching a certain pattern using Redis scan
+        Get a list of keys which do not have this server name within the key,
+        this means the ban has not been synced to the server, therefore it can
+        be synced after being gathered.
 
         Returns:
-            Returns a list of all IPs not relating to the name of this object from the passed config
+            Returns a list of all IPs not relating to the name of this "server" from the passed config
         """
         all_results = []
-        cursor, results = self.redis_connection.scan(0, "*-pyFilter-[^\D{}]".format(self.name))
-        all_results.extend(results)
-        while cursor != 0:
-            cursor, results = self.redis_connection.scan(cursor, "*-pyFilter-[^\D{}]".format(self.name))
-            all_results.extend(results)
+        cursor = 0
+        while True:
+            cursor, results = self.redis_connection.scan(cursor)
+            for result in results:
+                if self.redis_connection.type(result) != "hash":
+                    continue
+
+                keys = self.redis_connection.hkeys(result)
+                if self.name in keys:
+                    continue
+
+                self.redis_connection.hset(result, self.name, 1)
+                all_results.append((keys[0], result))
+
+            if cursor == 0:
+                break
         return all_results
-
-    def rename_keys(self, keys_formatted):
-        """
-        Renames the keys once it has been synced
-
-        Args:
-            keys_formatted: A list of formatted redis keys
-
-        Renames keys such as x.x.x.x-pyFilter-1 to just x.x.x.x once the ban has been synced
-        """
-        keys = [x.split("-")[0] for x in keys_formatted]
-        for index, key in enumerate(keys_formatted):
-            self.redis_connection.rename(key, keys[index])
 
 
 class SqliteConnection:

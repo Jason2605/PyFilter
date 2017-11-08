@@ -31,7 +31,7 @@ class PyFilter(object):
 
     def read_files(self, pattern_type="ssh"):
         """
-        Reads the log files for the specified pattern
+        Reads the log files for the specified regex pattern
 
         Args:
             pattern_type: pattern_type is a string to select the rule from the config
@@ -134,7 +134,7 @@ class PyFilter(object):
 
         if self.ip_dict[pattern_type][ip]["amount"] == self.settings["failed_attempts"]:
 
-            if self.database_connection.select(ip):
+            if self.database_connection.select(ip) is not None:
                 return
 
             self.blacklist(ip)
@@ -207,16 +207,15 @@ class PyFilter(object):
             ip_list = self.database_connection.scan()
             if ip_list:
                 for ip in ip_list:
-                    ip_string = ip.split('-')
-                    ip = ip_string[0]
+                    server_name, ip = ip
 
                     if self.log_settings["active"]:
-                        log_message = "Found IP: {} from server: {} - Blacklisting".format(ip, ip_string[2])
-                        print(log_message)
+                        log_message = "Found IP: {} from server: {} - Blacklisting\n".format(ip, server_name)
+                        print(log_message, end="")
                         self.log(log_message)
 
                     self.blacklist(ip, False)
-                self.database_connection.rename_keys(ip_list)
+
             time.sleep(self.database_connection.check_time)
 
     def __setup_regex(self):
