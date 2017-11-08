@@ -3,7 +3,7 @@ pyFilter aims to filter out all of the requests that are not legitimate to your 
 
 By default pyFilter is configured to read from `/var/log/auth.log` for incoming SSH requests, however there are options for `Apache, Nginx and MySQL` too.
 
-pyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. pyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed.
+pyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. pyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed. However redis has support for cross server ban syncing (more info below).
 
 Installation:
 -------------
@@ -17,7 +17,7 @@ Optional:
 
 To install pyFilter download the files from this repo via your preferred method, for example `git clone https://github.com/Jason2605/pyFilter.git`.
 
-**Optional:** `install.sh` will setup a service for pyFilter, and you can start/stop it by using `sudo systemctl start/stop pyFilter` and get the status of the pyFilter service using `sudo systemctl status pyFilter`.
+**Optional:** `install.sh` will setup a service for pyFilter, and you can start/stop it by using `sudo systemctl start/stop pyFilter` and get the status of the pyFilter service using `sudo systemctl status pyFilter`. To run this make sure you give permission to the `install.sh` file `sudo chmod +x install.sh`.
 
 **Note: The default configuration file runs on sqlite, so installing py-redis and redis are optional.**
 
@@ -63,23 +63,25 @@ Configuration:
     "reload_iptables": true,
     "rules": {
       "ssh": {
-        "log_files": [["/var/log/auth.log"]],
+        "log_file": "/var/log/auth.log",
         "regex_patterns": [
-          "([a-zA-Z]{3} \\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
-          "([a-zA-Z]{3} \\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
-          "([a-zA-Z]{3} \\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*"
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*",
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Unable to negotiate with (.*) port .*"
         ],
         "time_format": "%b %d %H:%M:%S"
       },
       "mysql": {
-        "log_files": [],
+        "log_file": "",
         "regex_patterns": [
           "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) .* Access denied for user '.*'@'(.*)' .*"
         ],
         "time_format": "%Y-%m-%d  %H:%M:%S"
       },
       "apache": {
-        "log_files": [],
+        "log_file": "",
         "regex_patterns": [
           ["(\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}) .* \\[(.*)\\] \"POST /({}) HTTP/1.1\" (\\d{{0,3}})", "urls"]
         ],
@@ -88,7 +90,7 @@ Configuration:
         "http_status_blocks": [200]
       },
       "nginx": {
-        "log_files": [],
+        "log_file": "",
         "regex_patterns": [
           ["(\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}) .* \\[(.*)\\] \"POST /({}) HTTP/1.1\" (\\d{{0,3}})", "urls"]
         ],
@@ -104,7 +106,16 @@ Configuration:
   "redis": {
     "host": "127.0.0.1",
     "password": null,
-    "database": 0
+    "database": 0,
+    "sync_bans": {
+      "active": true,
+      "name": "1",
+      "check_time": 600
+    }
+  },
+  "logging": {
+    "active": true,
+    "directory": "Logs"
   }
 }
 ```
@@ -128,8 +139,7 @@ To swap from sqlite to redis, change the current value `"database": "sqlite"` to
 
 ### Log files
 
-`"log_files": [["/var/log/auth.log"]]` Since the log file is within `[]` pyFilter will search for any files with the pattern of <file>.[0-9] (0-9 being any number within that range), so using the default config value, this will search and return `"/var/log/auth.log.1"` for example.
-You can also individually specify files within the list, for example: `"log_files": ["/var/log/auth.log", "/var/log/auth.log.1"]` and both will be searched without looking for extra files. **Note: Notice the log files are not within `[]`**.
+`"log_file": "/var/log/auth.log"` This will read from the specified file, and add bans as the events happen. 
 
 ### Regex patterns
 
@@ -183,9 +193,35 @@ Check time is the amount of time in seconds it takes to do each rule, for exampl
 
 Host is the ip address of where the redis server is located. The `"database"` option is the database you want the banned IP addresses to be stored in, by default within redis the options are 0 to 15. If you have a password for your redis server change `"password": null` to `"password": "your password"`.
 
+Cross server ban syncing:
+-------------------------
+
+Cross server ban syncing allows IP addresses to be banned across multiple servers if this is enabled. For example if IP address X was banned on server Y, and server Z has ban syncing enabled it will blacklist that IP even if that IP has not met the required failed attempts on **that** server.
+
+```json
+    "sync_bans": {
+      "active": true,
+      "name": "1",
+      "check_time": 600
+    }
+```
+This is the section for ban syncing.
+
+### Active
+
+Enables/disables cross server ban syncing.
+
+### Name
+
+This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This name can be anything as long as it is unique, for example `"name": "VPS-Lon-1"`.
+
+### Check time
+
+The amount of time in seconds the redis server will be polled to check for new bans, and sync them.
+
 Running:
 --------
-Note: To run this you will need sudo privileges, and will need to ensure the bash files have correct permissions.
+Note: To run this you will need sudo privileges, and will need to ensure the bash files have correct permissions. If not grant using `sudo chmod +x run.sh`.
 ```
 $ ./run.sh
 ```
