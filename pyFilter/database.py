@@ -14,6 +14,7 @@ class RedisConnection:
     Args:
         Dictionary passed from config.json
     """
+
     def __init__(self, config):
         if Redis is None:
             raise ImportError("Redis isn't installed!")
@@ -33,6 +34,7 @@ class RedisConnection:
         Args:
             ip: IP address to be inserted into redis
         """
+
         self.redis_connection.hmset(ip, {self.name: 1})
 
     def select(self, ip):
@@ -45,6 +47,7 @@ class RedisConnection:
         Returns:
             Returns 1 (integer) if IP address is found else None
         """
+
         return self.redis_connection.hget(ip, self.name)
 
     def scan(self):
@@ -56,6 +59,7 @@ class RedisConnection:
         Returns:
             Returns a list of all IPs not relating to the name of this "server" from the passed config
         """
+
         all_results = []
         cursor = 0
         while True:
@@ -83,6 +87,7 @@ class SqliteConnection:
     Args:
         Dictionary passed from config.json
     """
+
     def __init__(self, config):
         database = config["database"]
         self.sqlite_connection = sqlite3.connect(database, check_same_thread=False)
@@ -98,6 +103,7 @@ class SqliteConnection:
         Args:
             ip: IP address to be inserted into sqlite
         """
+
         cursor = self.sqlite_connection.cursor()
         try:
             cursor.execute("INSERT INTO banned_ip VALUES (?)", (ip,))
@@ -117,6 +123,7 @@ class SqliteConnection:
         Returns:
             Returns ip address as a string if found, else None is returned
         """
+
         cursor = self.sqlite_connection.cursor()
         cursor.execute("SELECT ip FROM banned_ip WHERE ip = ?", (ip,))
         ip = cursor.fetchone()

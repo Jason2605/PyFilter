@@ -1,9 +1,9 @@
-# pyFilter
-pyFilter aims to filter out all of the requests that are not legitimate to your server, and blocks them if too many are sent. It works by reading log files and checking if a failed request has came from the same IP address within a user configurable amount of time and adding rules to the firewall if too many attempts have been captured.
+# PyFilter
+PyFilter aims to filter out all of the requests that are not legitimate to your server, and blocks them if too many are sent. It works by reading log files and checking if a failed request has came from the same IP address within a user configurable amount of time and adding rules to the firewall if too many attempts have been captured.
 
-By default pyFilter is configured to read from `/var/log/auth.log` for incoming SSH requests, however there are options for `Apache, Nginx and MySQL` too.
+By default PyFilter is configured to read from `/var/log/auth.log` for incoming SSH requests, however there are options for `Apache, Nginx and MySQL` too.
 
-pyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. pyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed. However redis has support for cross server ban syncing (more info below).
+PyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. PyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed. However redis has support for cross server ban syncing (more info below).
 
 Installation:
 -------------
@@ -15,9 +15,9 @@ Optional:
 - [py-redis](https://pypi.python.org/pypi/redis)
 - [redis](https://redis.io)
 
-To install pyFilter download the files from this repo via your preferred method, for example `git clone https://github.com/Jason2605/pyFilter.git`.
+To install PyFilter download the files from this repo via your preferred method, for example `git clone https://github.com/Jason2605/PyFilter.git`.
 
-**Optional:** `install.sh` will setup a service for pyFilter, and you can start/stop it by using `sudo systemctl start/stop pyFilter` and get the status of the pyFilter service using `sudo systemctl status pyFilter`. To run this make sure you give permission to the `install.sh` file `sudo chmod +x install.sh`.
+**Optional:** `install.sh` will setup a service for PyFilter, and you can start/stop it by using `sudo systemctl start/stop PyFilter` and get the status of the PyFilter service using `sudo systemctl status PyFilter`. To run this make sure you give permission to the `install.sh` file `sudo chmod +x install.sh`.
 
 **Note: The default configuration file runs on sqlite, so installing py-redis and redis are optional.**
 
@@ -49,7 +49,7 @@ Starting/stopping redis
 Configuration:
 -------------
 
-- Copy the [default config file](https://github.com/Jason2605/pyFilter/blob/master/Config/config.default.json) and call it config.json.
+- Copy the [default config file](https://github.com/Jason2605/PyFilter/blob/master/Config/config.default.json) and call it config.json.
 ```json
 {
   "settings": {
@@ -101,7 +101,7 @@ Configuration:
     }
   },
   "sqlite": {
-    "database": "pyFilter.db"
+    "database": "PyFilter.db"
   },
   "redis": {
     "host": "127.0.0.1",
@@ -135,7 +135,7 @@ To swap from sqlite to redis, change the current value `"database": "sqlite"` to
 
 ### Reload iptables
 
-`iptables` is not persistant over restarts, so this setting will reload the table with the saved bans so far on launch and update the rules.
+`iptables` is not persistent over restarts, so this setting will reload the table with the saved bans so far on launch and update the rules.
 
 ### Log files
 
@@ -164,7 +164,7 @@ The time format needs to match the log format to form a datetime object. For exa
 
 ### Ignored IP addresses
 
-This is quite explanitory, if a regex matches however the IP address is within this list, it will be ignored so that IP address will not get banned.
+This is quite explanatory, if a regex matches however the IP address is within this list, it will be ignored so that IP address will not get banned.
 
 You can add more IPs
 `"ignored_ips": ["127.0.0.1", "123.456.789.1"]`
@@ -179,15 +179,7 @@ Deny type is the way iptables will deal with the incoming packets, `DENY` is rec
 
 ### Failed attempts
 
-Failed attempts is the number of matches that IP address needs to get trying to connect each rule for it to get blacklisted, for example `"failed_attempts": 5` 5 failed attempts on an SSH connection will get it banned, however 3 on SSH and 2 on MySQL will not get it banned, they are seperate.
-
-### Run once
-
-This setting will only run the script once and not check many times, useful if you want to create your own more advanced schedules.
-
-### Check time
-
-Check time is the amount of time in seconds it takes to do each rule, for example `"check_time": 600` check time is 600 seconds and there are 4 rules, there will be a gap of 150 seconds until the next rule is run, and a 600 second wait until the same rule is run again.
+Failed attempts is the number of matches that IP address needs to get trying to connect each rule for it to get blacklisted, for example `"failed_attempts": 5` 5 failed attempts on an SSH connection will get it banned, however 3 on SSH and 2 on MySQL will not get it banned, they are separate.
 
 ### Redis - Optional
 
@@ -213,7 +205,7 @@ Enables/disables cross server ban syncing.
 
 ### Name
 
-This is the name of the server, this **has** to be different for each server running pyFilter or the bans will not get synced properly. This name can be anything as long as it is unique, for example `"name": "VPS-Lon-1"`.
+This is the name of the server, this **has** to be different for each server running PyFilter or the bans will not get synced properly. This name can be anything as long as it is unique, for example `"name": "VPS-Lon-1"`.
 
 ### Check time
 
