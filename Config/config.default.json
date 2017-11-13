@@ -5,8 +5,6 @@
     "deny_type": "DROP",
     "ignored_ips": ["127.0.0.1"],
     "request_time": 5,
-    "check_time": 600,
-    "run_once": true,
     "reload_iptables": true,
     "rules": {
       "ssh": {

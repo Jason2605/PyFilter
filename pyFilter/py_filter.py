@@ -56,8 +56,6 @@ class PyFilter(object):
                     where = f.tell()
                     line = f.readline()
                     if not line:
-                        if self.settings["run_once"]:
-                            return
 
                         if inode != os.stat(log_file).st_ino:
                             break
@@ -74,7 +72,6 @@ class PyFilter(object):
 
                         found = found[0]
                         self.filter(pattern_type, found)
-
                     time.sleep(0.0001)  # Ensure it doesnt kill CPU
 
     def filter(self, pattern_type, found):
@@ -196,7 +193,7 @@ class PyFilter(object):
                 print("Saving newly blacklisted IP's!")
                 subprocess.call("iptables-save > Config/blacklist.v4", shell=True)
                 self.ip_blacklisted = False
-                time.sleep(300)
+            time.sleep(300)
 
     def monitor_redis(self):
         """
