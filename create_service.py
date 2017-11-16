@@ -4,7 +4,7 @@ cwd = os.getcwd()
 
 service_text = """
 [Unit]
-Description=pyFilter
+Description=PyFilter
 After=network.target
 
 [Service]
@@ -16,6 +16,6 @@ WantedBy=multi-user.target
 """.format(cwd, cwd)
 
 
-with open("pyFilter.service", "w") as f:
+with open("PyFilter.service", "w") as f:
     f.write(service_text)
 

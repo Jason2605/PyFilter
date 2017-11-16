@@ -29,25 +29,16 @@ class PyFilter(object):
         self.__setup_regex()
         self.__setup_database(data)
 
-    def read_files(self, pattern_type="ssh"):
+    def read_files(self, log_file, pattern_type="ssh"):
         """
         Reads the log files for the specified regex pattern
 
         Args:
+            log_file: log file to be read and monitored
             pattern_type: pattern_type is a string to select the rule from the config
         """
 
-        log_file = self.rules[pattern_type]["log_file"]
-
-        if not log_file:
-            print("No file to check within rule: {}".format(pattern_type.title()))
-            return
-
         print("Checking {} logs".format(pattern_type.title()))
-
-        if not os.path.isfile(log_file):
-            print("WARNING: file {} could not be found".format(log_file))
-            return
 
         while True:
             inode = os.stat(log_file).st_ino
@@ -197,7 +188,7 @@ class PyFilter(object):
 
     def monitor_redis(self):
         """
-        Monitors redis for bans added from other pyFilter systems
+        Monitors redis for bans added from other PyFilter systems
         """
 
         while True:
@@ -232,7 +223,7 @@ class PyFilter(object):
 
     def __setup_database(self, data):
         """
-        Sets up the database object needed for pyFilter
+        Sets up the database object needed for PyFilter
 
         Args:
             data: A dictionary passed from config.json storing details for the chosen storage method
@@ -247,7 +238,7 @@ class PyFilter(object):
 
     def run(self):
         """
-        Creates the threads needed for pyFilter to run. This method starts pyFilter.
+        Creates the threads needed for PyFilter to run. This method starts PyFilter.
         """
 
         if self.settings["reload_iptables"]:
@@ -258,7 +249,18 @@ class PyFilter(object):
         threads = []
 
         for key in self.rules:
-            threads.append(threading.Thread(target=self.read_files, args=(key,), name=key))
+
+            log_file = self.rules[key]["log_file"]
+
+            if not log_file:
+                print("No file to check within rule: {}".format(key.title()))
+                continue
+
+            if not os.path.isfile(log_file):
+                print("WARNING: file {} could not be found".format(log_file))
+                continue
+
+            threads.append(threading.Thread(target=self.read_files, args=(log_file, key), name=key))
 
         threads.append(threading.Thread(target=self.make_persistent, name="persistent"))
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://pyfilter.co.uk"><img src="https://pyfilter.co.uk/static/images/Shield.png" width="200"/></a>
+</p>
+
 # PyFilter
 PyFilter aims to filter out all of the requests that are not legitimate to your server, and blocks them if too many are sent. It works by reading log files and checking if a failed request has came from the same IP address within a user configurable amount of time and adding rules to the firewall if too many attempts have been captured.
 

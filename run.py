@@ -5,7 +5,7 @@ if "__main__" == __name__:
     try:
         p.run()
     except KeyboardInterrupt:
-        print("\nClosing pyFilter")
+        print("\nClosing PyFilter")
     finally:
         if p.settings["database"] == "sqlite":
             p.database_connection.sqlite_connection.close()
