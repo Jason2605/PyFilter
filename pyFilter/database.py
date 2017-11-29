@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 try:
     from redis import Redis
 except ImportError:
@@ -35,7 +36,7 @@ class RedisConnection:
             ip: IP address to be inserted into redis
         """
 
-        self.redis_connection.hmset(ip, {self.name: 1})
+        self.redis_connection.hmset(ip, {self.name: datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
     def select(self, ip):
         """
@@ -72,8 +73,10 @@ class RedisConnection:
                 if self.name in keys:
                     continue
 
-                self.redis_connection.hset(result, self.name, 1)
-                all_results.append((keys[0], result))
+                time_banned = self.redis_connection.hget(result, keys[0])
+
+                self.redis_connection.hset(result, self.name, time_banned)
+                all_results.append((keys[0], result))  # keys[0] is the server which banned the IP
 
             if cursor == 0:
                 break
@@ -92,7 +95,7 @@ class SqliteConnection:
         database = config["database"]
         self.sqlite_connection = sqlite3.connect(database, check_same_thread=False)
         cursor = self.sqlite_connection.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS banned_ip (ip text PRIMARY KEY)''')
+        cursor.execute('''CREATE TABLE IF NOT EXISTS banned_ip (ip text PRIMARY KEY, time_banned text)''')
         self.sqlite_connection.commit()
         cursor.close()
 
@@ -106,7 +109,7 @@ class SqliteConnection:
 
         cursor = self.sqlite_connection.cursor()
         try:
-            cursor.execute("INSERT INTO banned_ip VALUES (?)", (ip,))
+            cursor.execute("INSERT INTO banned_ip VALUES (?, ?)", (ip, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             self.sqlite_connection.commit()
         except sqlite3.IntegrityError:
             print("IP already in the database")

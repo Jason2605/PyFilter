@@ -86,7 +86,7 @@ class PyFilter(object):
         this_year = datetime.now().year
 
         if t.year != this_year:
-            t = t.replace(year=this_year)
+            t = t.replace(year=this_year)  # Assume the request was this year
 
         if not self.ip_regex.match(ip):
             ip = socket.gethostbyname(ip)
@@ -161,11 +161,11 @@ class PyFilter(object):
             log_message: A string to be wrote to the logs
         """
 
-        config_dir = self.log_settings["directory"]
-        day_dir = "{}/{}".format(config_dir, datetime.now().strftime("%Y-%m-%d"))
+        log_directory = self.log_settings["directory"]
+        day_dir = "{}/{}".format(log_directory, datetime.now().strftime("%Y-%m-%d"))
 
-        if not os.path.isdir(config_dir):
-            os.mkdir(config_dir)
+        if not os.path.isdir(log_directory):
+            os.mkdir(log_directory)
 
         if not os.path.isdir(day_dir):
             os.mkdir(day_dir)
@@ -174,7 +174,7 @@ class PyFilter(object):
         with open(file_name, 'a' if os.path.isfile(file_name) else 'w') as file:
             file.write("{} {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), log_message))
 
-    def make_persistent(self):
+    def make_persistent(self, loop=True):
         """
         Saves blacklisted IP addresses using iptables-save which can be reloaded on start
         """
@@ -184,6 +184,10 @@ class PyFilter(object):
                 print("Saving newly blacklisted IP's!")
                 subprocess.call("iptables-save > Config/blacklist.v4", shell=True)
                 self.ip_blacklisted = False
+
+            if not loop:  # Added so this method can be called when PyFilter is closed, without it creating the loop
+                return
+
             time.sleep(300)
 
     def monitor_redis(self):
@@ -192,17 +196,15 @@ class PyFilter(object):
         """
 
         while True:
-            ip_list = self.database_connection.scan()
-            if ip_list:
-                for ip in ip_list:
-                    server_name, ip = ip
+            for ip in self.database_connection.scan():
+                server_name, ip = ip
 
-                    if self.log_settings["active"]:
-                        log_message = "Found IP: {} from server: {} - Blacklisting\n".format(ip, server_name)
-                        print(log_message, end="")
-                        self.log(log_message)
+                if self.log_settings["active"]:
+                    log_message = "Found IP: {} from server: {} - Blacklisting\n".format(ip, server_name)
+                    print(log_message, end="")
+                    self.log(log_message)
 
-                    self.blacklist(ip, False)
+                self.blacklist(ip, False)
 
             time.sleep(self.database_connection.check_time)
 
