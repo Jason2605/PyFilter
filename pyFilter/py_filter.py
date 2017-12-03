@@ -56,16 +56,16 @@ class PyFilter(object):
                         continue
 
                     for regex_pattern in self.regex[pattern_type]:
-                        found = regex_pattern.findall(line)
+                        found = regex_pattern[0].findall(line)
 
                         if not found:
                             continue
 
                         found = found[0]
-                        self.filter(pattern_type, found)
+                        self.filter(pattern_type, found, regex_pattern[1])
                     time.sleep(0.0001)  # Ensure it doesnt kill CPU
 
-    def filter(self, pattern_type, found):
+    def filter(self, pattern_type, found, instant_ban):
         """
         Filters the IP addresses from HTTP verb (for nginx/apache) and
         checks if the IP address is within the allowed IP address list
@@ -73,6 +73,7 @@ class PyFilter(object):
         Args:
             pattern_type: A string to select the correct rule and ip
             found: A matching regex string
+            instant_ban: Boolean passed to instantly ban the IP on a certain regex match
         """
 
         cond = pattern_type in ("apache", "nginx")
@@ -92,6 +93,15 @@ class PyFilter(object):
             ip = socket.gethostbyname(ip)
 
         if ip not in self.settings["ignored_ips"]:
+            if instant_ban:
+                if self.log_settings["active"]:
+                    log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
+                              " Acquired an instant ban via {}.\n".format(ip, pattern_type)
+
+                    self.log(log_msg)
+                    print(log_msg, end='')
+                return self.blacklist(ip)
+
             if ip not in self.ip_dict[pattern_type]:
                 self.ip_dict[pattern_type][ip] = {"amount": 0, "last_request": None}
             self.check(ip, pattern_type, t)
@@ -217,9 +227,14 @@ class PyFilter(object):
         for key in self.ip_dict:
             self.regex[key] = []
             for regex in self.rules[key]["regex_patterns"]:
+                instant_ban = False
                 if not isinstance(regex, str):
-                    regex = regex[0].format("|".join(self.rules[key][regex[1]]))
-                self.regex[key].append(re.compile(regex))
+                    if isinstance(regex[1], str):
+                        regex = regex[0].format("|".join(self.rules[key][regex[1]]))
+                    elif isinstance(regex[1], bool):
+                        regex = regex[0]
+                        instant_ban = True
+                self.regex[key].append([re.compile(regex), instant_ban])
 
         self.ip_regex = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 
