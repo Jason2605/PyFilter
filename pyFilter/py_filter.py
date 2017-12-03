@@ -94,6 +94,8 @@ class PyFilter(object):
 
         if ip not in self.settings["ignored_ips"]:
             if instant_ban:
+                if self.database_connection.select(ip) is not None:
+                    return
                 if self.log_settings["active"]:
                     log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
                               " Acquired an instant ban via {}.\n".format(ip, pattern_type)
