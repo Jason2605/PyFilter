@@ -96,13 +96,15 @@ class PyFilter(object):
             if instant_ban:
                 if self.database_connection.select(ip) is not None:
                     return
-                if self.log_settings["active"]:
-                    log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
-                              " Acquired an instant ban via {}.\n".format(ip, pattern_type)
 
+                log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
+                          " Acquired an instant ban via {}.\n".format(ip, pattern_type)
+
+                if self.log_settings["active"]:
                     self.log(log_msg)
                     print(log_msg, end='')
-                return self.blacklist(ip)
+
+                return self.blacklist(ip, log_msg=log_msg)
 
             if ip not in self.ip_dict[pattern_type]:
                 self.ip_dict[pattern_type][ip] = {"amount": 0, "last_request": None}
@@ -137,22 +139,23 @@ class PyFilter(object):
             if self.database_connection.select(ip) is not None:
                 return
 
-            self.blacklist(ip)
+            log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
+                      " Acquired 5 bad connections via {}.\n".format(ip, pattern_type)
 
             if self.log_settings["active"]:
-                log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
-                          " Acquired 5 bad connections via {}.\n".format(ip, pattern_type)
-
                 self.log(log_msg)
                 print(log_msg, end='')
 
-    def blacklist(self, ip, save=True):
+            self.blacklist(ip, log_msg=log_msg)
+
+    def blacklist(self, ip, save=True, log_msg="Unkown"):
         """
         Blacklists the IP address within iptables and save the IP to the chosen storage
 
         Args:
             ip: IP address as a string to be blacklisted
             save: Boolean to save the blacklisted IP address to the database
+            log_msg: Reason as to why the IP has been banned
         """
 
         blacklist_string = "iptables -I INPUT -s {} -j {}".format(ip, self.settings["deny_type"])
@@ -163,7 +166,7 @@ class PyFilter(object):
             return
 
         with self.lock:
-            self.database_connection.insert(ip)
+            self.database_connection.insert(ip, log_msg)
 
     def log(self, log_message):
         """
