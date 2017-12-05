@@ -73,7 +73,8 @@ Configuration:
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Did not receive identification string from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Received disconnect from (.*) port (.*):\\d{0,4}: .*",
-          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Unable to negotiate with (.*) port .*"
+          "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Unable to negotiate with (.*) port .*",
+          ["([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* error: maximum authentication attempts exceeded for .* from (.*) port .*", true]
         ],
         "time_format": "%b %d %H:%M:%S"
       },
@@ -147,7 +148,11 @@ To swap from sqlite to redis, change the current value `"database": "sqlite"` to
 
 ### Regex patterns
 
-The regex patterns **have** to match an IP address and a timestamp, preferably matching the timestamp first.
+The regex patterns **have** to match an IP address and a timestamp, preferably matching the timestamp first. If you have a regex pattern you wish to instantly ban on, wrap the pattern with [] and add `, true`. 
+For example 
+```
+["([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* error: maximum authentication attempts exceeded for .* from (.*) port .*", true]
+```
 
 ### Time format
 
@@ -221,3 +226,7 @@ Note: To run this you will need sudo privileges, and will need to ensure the bas
 ```
 $ ./run.sh
 ```
+
+Sponsors:
+--------
+<a href="https://www.digitalocean.com"><img src="https://www.digitalocean.com/assets/media/logos-badges/png/DO_Logo_Vertical_Blue-6321464d.png" width="100" height="100"/></a>
