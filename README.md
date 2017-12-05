@@ -226,3 +226,7 @@ Note: To run this you will need sudo privileges, and will need to ensure the bas
 ```
 $ ./run.sh
 ```
+
+Sponsors:
+--------
+<a href="https://www.digitalocean.com"><img src="https://www.digitalocean.com/assets/media/logos-badges/png/DO_Logo_Vertical_Blue-6321464d.png" width="100" height="100"/></a>
