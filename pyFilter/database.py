@@ -1,4 +1,5 @@
 import sqlite3
+import time
 from datetime import datetime
 try:
     from redis import Redis
@@ -28,15 +29,23 @@ class RedisConnection:
         self.check_time = config["sync_bans"]["check_time"]
         self.name = config["sync_bans"]["name"]
 
-    def insert(self, ip):
+    def insert(self, ip, log_msg):
         """
         Inserts IP addresses into Redis
 
         Args:
-            ip: IP address to be inserted into redis
+            ip: IP address as a string to be inserted into redis
+            log_msg: Reason as to why the IP is banned
         """
 
-        self.redis_connection.hmset(ip, {self.name: datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+        self.redis_connection.lpush("latest_10_keys", "{} {}".format(ip, self.name))
+        self.redis_connection.ltrim("latest_10_keys", 0, 9)
+
+        self.redis_connection.hmset(ip, {
+            self.name: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "reason": log_msg,
+            "banned_server": self.name
+        })
 
     def select(self, ip):
         """
@@ -95,11 +104,19 @@ class SqliteConnection:
         database = config["database"]
         self.sqlite_connection = sqlite3.connect(database, check_same_thread=False)
         cursor = self.sqlite_connection.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS banned_ip (ip text PRIMARY KEY, time_banned text)''')
+        cursor.execute(
+            '''CREATE TABLE IF NOT EXISTS banned_ip (
+            id INTEGER PRIMARY KEY, 
+            ip text, 
+            time_banned integer, 
+            server_name text,
+            log_msg text
+            )'''
+        )
         self.sqlite_connection.commit()
         cursor.close()
 
-    def insert(self, ip):
+    def insert(self, ip, log_msg):
         """
         Inserts a row into sqlite
 
@@ -109,7 +126,11 @@ class SqliteConnection:
 
         cursor = self.sqlite_connection.cursor()
         try:
-            cursor.execute("INSERT INTO banned_ip VALUES (?, ?)", (ip, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            cursor.execute(
+                "INSERT INTO banned_ip(ip, time_banned, server_name, log_msg) VALUES (?, ?, ?, ?)",
+                (ip, time.time(), "Server-1", log_msg)
+            )
+
             self.sqlite_connection.commit()
         except sqlite3.IntegrityError:
             print("IP already in the database")
