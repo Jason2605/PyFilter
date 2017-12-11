@@ -89,8 +89,13 @@ class PyFilter(object):
         if t.year != this_year:
             t = t.replace(year=this_year)  # Assume the request was this year
 
-        if not self.ip_regex.match(ip):
+        ip_type = self.__check_ip(ip)
+
+        if not ip_type:
             ip = socket.gethostbyname(ip)
+            ip_type = self.__check_ip(ip)
+
+        print(ip_type)
 
         if ip not in self.settings["ignored_ips"]:
             if instant_ban:
@@ -104,13 +109,13 @@ class PyFilter(object):
                     self.log(log_msg)
                     print(log_msg, end='')
 
-                return self.blacklist(ip, log_msg=log_msg)
+                return self.blacklist(ip, log_msg=log_msg, ip_type=ip_type)
 
             if ip not in self.ip_dict[pattern_type]:
                 self.ip_dict[pattern_type][ip] = {"amount": 0, "last_request": None}
-            self.check(ip, pattern_type, t)
+            self.check(ip, pattern_type, t, ip_type)
 
-    def check(self, ip, pattern_type, time_object):
+    def check(self, ip, pattern_type, time_object, ip_type="v4"):
         """
         Checks if the last known request and current request are within the threshold limit for attempts being added
         and if so add an attempt.
@@ -119,6 +124,7 @@ class PyFilter(object):
             ip: IP address as a string to be blacklisted if not already done so
             pattern_type: A string which selects the correct dictionary to get the amount of failed attempts for that IP
             time_object: A datetime object to check last request time
+            ip_type: Differentiates between the v4 and v6 protocols
         """
 
         old_time_object = self.ip_dict[pattern_type][ip]["last_request"]
@@ -146,9 +152,9 @@ class PyFilter(object):
                 self.log(log_msg)
                 print(log_msg, end='')
 
-            self.blacklist(ip, log_msg=log_msg)
+            self.blacklist(ip, log_msg=log_msg, ip_type=ip_type)
 
-    def blacklist(self, ip, save=True, log_msg="Unkown"):
+    def blacklist(self, ip, save=True, log_msg="Unknown", ip_type="v4"):
         """
         Blacklists the IP address within iptables and save the IP to the chosen storage
 
@@ -156,9 +162,12 @@ class PyFilter(object):
             ip: IP address as a string to be blacklisted
             save: Boolean to save the blacklisted IP address to the database
             log_msg: Reason as to why the IP has been banned
+            ip_type: Differentiates between the v4 and v6 protocols
         """
+        iptables_type = "iptables" if ip_type == "v4" else "ip6tables"
 
-        blacklist_string = "iptables -I INPUT -s {} -j {}".format(ip, self.settings["deny_type"])
+        blacklist_string = "{} -I INPUT -s {} -j {}".format(iptables_type, ip, self.settings["deny_type"])
+        print(blacklist_string)
         subprocess.call(blacklist_string.split())
         self.ip_blacklisted = True
 
@@ -198,6 +207,7 @@ class PyFilter(object):
             if self.ip_blacklisted:
                 print("Saving newly blacklisted IP's!")
                 subprocess.call("iptables-save > Config/blacklist.v4", shell=True)
+                subprocess.call("ip6tables-save > Config/blacklist.v6", shell=True)
                 self.ip_blacklisted = False
 
             if not loop:  # Added so this method can be called when PyFilter is closed, without it creating the loop
@@ -219,7 +229,8 @@ class PyFilter(object):
                     print(log_message, end="")
                     self.log(log_message)
 
-                self.blacklist(ip, False)
+                ip_type = self.__check_ip(ip)
+                self.blacklist(ip, False, ip_type=ip_type)
 
             time.sleep(self.database_connection.check_time)
 
@@ -241,7 +252,7 @@ class PyFilter(object):
                         instant_ban = True
                 self.regex[key].append([re.compile(regex), instant_ban])
 
-        self.ip_regex = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+        # self.ip_regex = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 
     def __setup_database(self, data):
         """
@@ -258,6 +269,26 @@ class PyFilter(object):
         else:
             raise DatabaseConfigException("Database has to be redis or sqlite!")
 
+    def __check_ip(self, ip, last=False):
+        """
+        Checks to see if the given IP is v4 or v6
+
+        Args:
+            ip: The ip string to be checked
+            last: A base case to stop recursion
+
+        Returns:
+            If IP is matched as either v4 or v6 a string is returned, else False
+        """
+        ip_type = (socket.AF_INET, "v4") if not last else (socket.AF_INET6, "v6")
+        try:
+            socket.inet_pton(ip_type[0], ip)
+            return ip_type[1]
+        except OSError:
+            if last:
+                return False
+            return self.__check_ip(ip, True)
+
     def run(self):
         """
         Creates the threads needed for PyFilter to run. This method starts PyFilter.
@@ -265,8 +296,12 @@ class PyFilter(object):
 
         if self.settings["reload_iptables"]:
             if os.path.isfile("Config/blacklist.v4"):
-                print("Updating firewall rules!")
+                print("Updating firewall rules (v4)!")
                 subprocess.call("iptables-restore < Config/blacklist.v4", shell=True)
+
+            if os.path.isfile("Config/blacklist.v6"):
+                print("Updating firewall rules (v6)!")
+                subprocess.call("iptables-restore < Config/blacklist.v6", shell=True)
 
         threads = []
 

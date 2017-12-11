@@ -82,10 +82,11 @@ class RedisConnection:
                 if self.name in keys:
                     continue
 
-                time_banned = self.redis_connection.hget(result, keys[0])
+                server = self.redis_connection.hget(result, "banned_server")
+                time_banned = self.redis_connection.hget(result, server)
 
                 self.redis_connection.hset(result, self.name, time_banned)
-                all_results.append((keys[0], result))  # keys[0] is the server which banned the IP
+                all_results.append((server, result))
 
             if cursor == 0:
                 break
