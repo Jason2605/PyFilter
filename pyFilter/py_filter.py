@@ -95,8 +95,6 @@ class PyFilter(object):
             ip = socket.gethostbyname(ip)
             ip_type = self.__check_ip(ip)
 
-        print(ip_type)
-
         if ip not in self.settings["ignored_ips"]:
             if instant_ban:
                 if self.database_connection.select(ip) is not None:
@@ -167,7 +165,6 @@ class PyFilter(object):
         iptables_type = "iptables" if ip_type == "v4" else "ip6tables"
 
         blacklist_string = "{} -I INPUT -s {} -j {}".format(iptables_type, ip, self.settings["deny_type"])
-        print(blacklist_string)
         subprocess.call(blacklist_string.split())
         self.ip_blacklisted = True
 
@@ -186,13 +183,12 @@ class PyFilter(object):
         """
 
         log_directory = self.log_settings["directory"]
-        day_dir = "{}/{}".format(log_directory, datetime.now().strftime("%Y-%m-%d"))
+        month_dir = "{}/{}".format(log_directory, datetime.now().strftime("%Y-%b"))
+        day_dir = "{}/{}".format(month_dir, datetime.now().strftime("%Y-%m-%d"))
 
-        if not os.path.isdir(log_directory):
-            os.mkdir(log_directory)
-
-        if not os.path.isdir(day_dir):
-            os.mkdir(day_dir)
+        for directory in (log_directory, month_dir, day_dir):
+            if not os.path.isdir(directory):
+                os.mkdir(directory)
 
         file_name = "{}/{}.log".format(day_dir, datetime.now().strftime("%Y-%m-%d %H"))
         with open(file_name, 'a' if os.path.isfile(file_name) else 'w') as file:
@@ -251,8 +247,6 @@ class PyFilter(object):
                         regex = regex[0]
                         instant_ban = True
                 self.regex[key].append([re.compile(regex), instant_ban])
-
-        # self.ip_regex = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 
     def __setup_database(self, data):
         """
@@ -328,4 +322,4 @@ class PyFilter(object):
         if self.settings["database"] == "redis":
             if self.database_connection.sync_active:
                 self.monitor_redis()
-        threads[0].join()  # Keeps main thread open if redis monitoring isnt enabled
+        threads[0].join()  # Keeps main thread open if redis monitoring isn't enabled
