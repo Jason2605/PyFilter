@@ -29,6 +29,9 @@ class RedisConnection:
         self.check_time = config["sync_bans"]["check_time"]
         self.name = config["sync_bans"]["name"]
 
+        self.pub_sub = self.redis_connection.pubsub()
+        self.pub_sub.subscribe("PyFilter")
+
     def insert(self, ip, log_msg):
         """
         Inserts IP addresses into Redis
@@ -47,6 +50,8 @@ class RedisConnection:
             "banned_server": self.name
         })
 
+        self.redis_connection.publish("PyFilter", "{} {}".format(ip, self.name))
+
     def select(self, ip):
         """
         Return an IP address from Redis
@@ -59,6 +64,39 @@ class RedisConnection:
         """
 
         return self.redis_connection.hget(ip, self.name)
+
+    def get_bans(self):
+        """
+        Gets ips from Redis Pub/Sub to be banned, so it doesnt need to scan redis in its entirety
+
+        Returns:
+            Returns a list of all IPs not relating to the name of this "server" from the passed config
+        """
+
+        bans = []
+
+        while True:
+            ban = self.pub_sub.get_message()
+
+            if not ban:
+                return bans
+
+            if ban["type"] != "message":
+                continue
+
+            ban_data = ban["data"].split()
+            if len(ban_data) != 2:
+                ban_data[1] = " ".join(ban_data[1:])
+
+            if ban_data[1] == self.name:
+                continue
+
+            server = self.redis_connection.hget(ban_data[0], "banned_server")
+            time_banned = self.redis_connection.hget(ban_data[0], server)
+
+            self.redis_connection.hset(ban_data[0], self.name, time_banned)
+
+            bans.append(ban_data[:2])
 
     def scan(self):
         """
@@ -107,9 +145,9 @@ class SqliteConnection:
         cursor = self.sqlite_connection.cursor()
         cursor.execute(
             '''CREATE TABLE IF NOT EXISTS banned_ip (
-            id INTEGER PRIMARY KEY, 
-            ip text, 
-            time_banned integer, 
+            id INTEGER PRIMARY KEY,
+            ip text,
+            time_banned integer,
             server_name text,
             log_msg text
             )'''

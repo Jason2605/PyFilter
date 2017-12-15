@@ -202,8 +202,9 @@ class PyFilter(object):
         while True:
             if self.ip_blacklisted:
                 print("Saving newly blacklisted IP's!")
-                subprocess.call("iptables-save > Config/blacklist.v4", shell=True)
-                subprocess.call("ip6tables-save > Config/blacklist.v6", shell=True)
+                for extension in ("v4", "v6"):
+                    with open("Config/blacklist.{}".format(extension), "w") as f:
+                        subprocess.call(["iptables-save"], stdout=f)
                 self.ip_blacklisted = False
 
             if not loop:  # Added so this method can be called when PyFilter is closed, without it creating the loop
@@ -216,19 +217,39 @@ class PyFilter(object):
         Monitors redis for bans added from other PyFilter systems
         """
 
+        self.check_redis()
+
         while True:
-            for ip in self.database_connection.scan():
-                server_name, ip = ip
+            for ip, server_name in self.database_connection.get_bans():
+                self.__redis_ban(server_name, ip)
 
-                if self.log_settings["active"]:
-                    log_message = "Found IP: {} from server: {} - Blacklisting\n".format(ip, server_name)
-                    print(log_message, end="")
-                    self.log(log_message)
+            time.sleep(15)
+            # time.sleep(self.database_connection.check_time)
 
-                ip_type = self.__check_ip(ip)
-                self.blacklist(ip, False, ip_type=ip_type)
+    def check_redis(self):
+        """
+        Checks all previous bans and adds them on startup
+        """
 
-            time.sleep(self.database_connection.check_time)
+        for server_name, ip in self.database_connection.scan():
+            self.__redis_ban(server_name, ip)
+
+    def __redis_ban(self, server_name, ip):
+        """
+        Function to ban/log IP's found via redis
+
+        Args:
+            server_name: Name of the server which banned the IP
+            ip: IP to be banned
+        """
+
+        if self.log_settings["active"]:
+            log_message = "Found IP: {} from server: {} - Blacklisting\n".format(ip, server_name)
+            print(log_message, end="")
+            self.log(log_message)
+
+        ip_type = self.__check_ip(ip)
+        self.blacklist(ip, False, ip_type=ip_type)
 
     def __setup_regex(self):
         """
@@ -289,13 +310,13 @@ class PyFilter(object):
         """
 
         if self.settings["reload_iptables"]:
-            if os.path.isfile("Config/blacklist.v4"):
-                print("Updating firewall rules (v4)!")
-                subprocess.call("iptables-restore < Config/blacklist.v4", shell=True)
-
-            if os.path.isfile("Config/blacklist.v6"):
-                print("Updating firewall rules (v6)!")
-                subprocess.call("iptables-restore < Config/blacklist.v6", shell=True)
+            for extension in ("v4", "v6"):
+                ip_file = "Config/blacklist.{}".format(extension)
+                if not os.path.isfile(ip_file):
+                    continue
+                print("Updating firewall rules ({})!".format(extension))
+                with open(ip_file) as f:
+                    subprocess.call(["iptables-restore"], stdin=f)
 
         threads = []
 
