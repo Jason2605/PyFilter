@@ -202,9 +202,9 @@ class PyFilter(object):
         while True:
             if self.ip_blacklisted:
                 print("Saving newly blacklisted IP's!")
-                for extension in ("v4", "v6"):
+                for extension, command in (("v4", "iptables-save"), ("v6", "ip6tables-save")):
                     with open("Config/blacklist.{}".format(extension), "w") as f:
-                        subprocess.call(["iptables-save"], stdout=f)
+                        subprocess.call([command], stdout=f)
                 self.ip_blacklisted = False
 
             if not loop:  # Added so this method can be called when PyFilter is closed, without it creating the loop
@@ -223,8 +223,7 @@ class PyFilter(object):
             for ip, server_name in self.database_connection.get_bans():
                 self.__redis_ban(server_name, ip)
 
-            time.sleep(15)
-            # time.sleep(self.database_connection.check_time)
+            time.sleep(self.database_connection.check_time)
 
     def check_redis(self):
         """
@@ -310,13 +309,13 @@ class PyFilter(object):
         """
 
         if self.settings["reload_iptables"]:
-            for extension in ("v4", "v6"):
+            for extension, command in (("v4", "iptables-restore"), ("v6", "ip6tables-restore")):
                 ip_file = "Config/blacklist.{}".format(extension)
                 if not os.path.isfile(ip_file):
                     continue
                 print("Updating firewall rules ({})!".format(extension))
                 with open(ip_file) as f:
-                    subprocess.call(["iptables-restore"], stdin=f)
+                    subprocess.call([command], stdin=f)
 
         threads = []
 
