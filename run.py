@@ -1,11 +1,11 @@
 from pyFilter.py_filter import PyFilter
 
-if "__main__" == __name__:
+if __name__ == "__main__":
     p = PyFilter()
     try:
         p.run()
     except KeyboardInterrupt:
-        print("\nClosing PyFilter")
+        print("Closing PyFilter")
     finally:
         p.make_persistent(loop=False)  # Save any outstanding bans without the constant loop
         if p.settings["database"] == "sqlite":
