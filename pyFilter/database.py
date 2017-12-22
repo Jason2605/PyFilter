@@ -24,7 +24,7 @@ class RedisConnection:
                                       host=config["host"],
                                       password=config["password"],
                                       decode_responses=True
-                                      )
+                                     )
         self.sync_active = config["sync_bans"]["active"]
         self.check_time = config["sync_bans"]["check_time"]
         self.name = config["sync_bans"]["name"]
@@ -45,7 +45,8 @@ class RedisConnection:
             self.name: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "reason": log_msg,
             "banned_server": self.name
-        })
+            }
+        )
 
     def select(self, ip):
         """
@@ -72,7 +73,8 @@ class RedisConnection:
 
         all_results = []
         cursor = 0
-        while True:
+        
+        while 1:
             cursor, results = self.redis_connection.scan(cursor)
             for result in results:
                 if self.redis_connection.type(result) != "hash":
@@ -87,7 +89,7 @@ class RedisConnection:
                 self.redis_connection.hset(result, self.name, time_banned)
                 all_results.append((keys[0], result))  # keys[0] is the server which banned the IP
 
-            if cursor == 0:
+            if not cursor:
                 break
         return all_results
 
