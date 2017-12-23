@@ -4,7 +4,7 @@ from datetime import datetime
 try:
     from redis import Redis
 except ImportError:
-    raise ImportError("Redis isn't installed!")
+    Redis = None
 
 
 class RedisConnection:
@@ -18,6 +18,8 @@ class RedisConnection:
     """
 
     def __init__(self, config):
+        if Redis is None:
+            raise ImportError("Redis isn't installed!")
         self.redis_connection = Redis(db=config["database"],
                                       host=config["host"],
                                       password=config["password"],
