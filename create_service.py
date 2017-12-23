@@ -16,6 +16,6 @@ WantedBy=multi-user.target
 """.format(cwd, cwd)
 
 
-with open("PyFilter.service", "w") as f:
+with open("PyFilter.service", 'w') as f:
     f.write(service_text)
 
