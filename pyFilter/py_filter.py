@@ -162,6 +162,7 @@ class PyFilter(object):
             log_msg: Reason as to why the IP has been banned
             ip_type: Differentiates between the v4 and v6 protocols
         """
+
         iptables_type = "iptables" if ip_type == "v4" else "ip6tables"
 
         blacklist_string = "{} -I INPUT -s {} -j {}".format(iptables_type, ip, self.settings["deny_type"])
