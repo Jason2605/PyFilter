@@ -4,7 +4,7 @@ from datetime import datetime
 try:
     from redis import Redis
 except ImportError:
-    Redis = None
+    raise ImportError("Redis isn't installed!")
 
 
 class RedisConnection:
@@ -18,8 +18,6 @@ class RedisConnection:
     """
 
     def __init__(self, config):
-        if Redis is None:
-            raise ImportError("Redis isn't installed!")
         self.redis_connection = Redis(db=config["database"],
                                       host=config["host"],
                                       password=config["password"],
@@ -136,19 +134,27 @@ class SqliteConnection:
 
     def __init__(self, config):
         database = config["database"]
-        self.sqlite_connection = sqlite3.connect(database, check_same_thread=False)
-        cursor = self.sqlite_connection.cursor()
-        cursor.execute(
-            '''CREATE TABLE IF NOT EXISTS banned_ip (
-            id INTEGER PRIMARY KEY,
-            ip text,
-            time_banned integer,
-            server_name text,
-            log_msg text
-            )'''
-        )
-        self.sqlite_connection.commit()
-        cursor.close()
+        
+        cursor = None
+        
+        try:
+            self.sqlite_connection = sqlite3.connect(database, check_same_thread=False)
+            cursor = self.sqlite_connection.cursor()
+            cursor.execute(
+                """CREATE TABLE IF NOT EXISTS banned_ip (
+                id INTEGER PRIMARY KEY,
+                ip text,
+                time_banned integer,
+                server_name text,
+                log_msg text
+                )"""
+            )
+            self.sqlite_connection.commit()
+        except Exception as e:
+            print("{}: {}".format(type(e).__name__, e))
+        finally:
+            if cursor is not None:
+                cursor.close()
 
     def insert(self, ip, log_msg):
         """
@@ -181,9 +187,15 @@ class SqliteConnection:
         Returns:
             Returns ip address as a string if found, else None is returned
         """
-
-        cursor = self.sqlite_connection.cursor()
-        cursor.execute("SELECT ip FROM banned_ip WHERE ip = ?", (ip,))
-        ip = cursor.fetchone()
-        cursor.close()
-        return ip
+        cursor = None
+        
+        try:
+            cursor = self.sqlite_connection.cursor()
+            cursor.execute("SELECT ip FROM banned_ip WHERE ip = ?", (ip,))
+            ip = cursor.fetchone()
+            return ip
+        except Exception as e:
+            print("{}: {}".format(type(e).__name__, e))
+        finally:
+            if cursor is not None:
+                cursor.close()
