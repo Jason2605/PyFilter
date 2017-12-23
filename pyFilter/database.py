@@ -1,6 +1,7 @@
 import sqlite3
 import time
 from datetime import datetime
+
 try:
     from redis import Redis
 except ImportError:
@@ -163,6 +164,7 @@ class SqliteConnection:
 
         Args:
             ip: IP address to be inserted into sqlite
+            log_msg: Reason as to why the IP is banned
         """
         cursor = None
 
@@ -190,8 +192,9 @@ class SqliteConnection:
         Returns:
             Returns ip address as a string if found, else None is returned
         """
+
         cursor = None
-        
+
         try:
             cursor = self.sqlite_connection.cursor()
             cursor.execute("SELECT ip FROM banned_ip WHERE ip = ?", (ip,))
