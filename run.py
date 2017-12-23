@@ -5,7 +5,7 @@ if __name__ == "__main__":
     try:
         p.run()
     except KeyboardInterrupt:
-        print("Closing PyFilter")
+        print("\nClosing PyFilter")
     finally:
         p.make_persistent(loop=False)  # Save any outstanding bans without the constant loop
         if p.settings["database"] == "sqlite":
