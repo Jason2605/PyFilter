@@ -136,9 +136,8 @@ class SqliteConnection:
 
     def __init__(self, config):
         database = config["database"]
-        
         cursor = None
-        
+
         try:
             self.sqlite_connection = sqlite3.connect(database, check_same_thread=False)
             cursor = self.sqlite_connection.cursor()
