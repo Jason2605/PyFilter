@@ -165,9 +165,10 @@ class SqliteConnection:
         Args:
             ip: IP address to be inserted into sqlite
         """
+        cursor = None
 
-        cursor = self.sqlite_connection.cursor()
         try:
+            cursor = self.sqlite_connection.cursor()
             cursor.execute(
                 "INSERT INTO banned_ip(ip, time_banned, server_name, log_msg) VALUES (?, ?, ?, ?)",
                 (ip, time.time(), "Server-1", log_msg)
@@ -177,7 +178,8 @@ class SqliteConnection:
         except sqlite3.IntegrityError:
             print("IP already in the database")
         finally:
-            cursor.close()
+            if cursor is not None:
+                cursor.close()
 
     def select(self, ip):
         """
