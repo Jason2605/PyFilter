@@ -109,25 +109,20 @@ class RedisConnection:
         """
 
         all_results = []
-        cursor = 0
-        while True:
-            cursor, results = self.redis_connection.scan(cursor)
-            for result in results:
-                if self.redis_connection.type(result) != "hash":
-                    continue
+        for result in self.redis_connection.scan_iter():
+            if self.redis_connection.type(result) != "hash":
+                continue
 
-                keys = self.redis_connection.hkeys(result)
-                if self.name in keys:
-                    continue
+            keys = self.redis_connection.hkeys(result)
+            if self.name in keys:
+                continue
 
-                server = self.redis_connection.hget(result, "banned_server")
-                time_banned = self.redis_connection.hget(result, server)
+            server = self.redis_connection.hget(result, "banned_server")
+            time_banned = self.redis_connection.hget(result, server)
 
-                self.redis_connection.hset(result, self.name, time_banned)
-                all_results.append((server, result))
+            self.redis_connection.hset(result, self.name, time_banned)
+            all_results.append((server, result))
 
-            if cursor == 0:
-                break
         return all_results
 
 
