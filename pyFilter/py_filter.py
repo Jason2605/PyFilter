@@ -60,7 +60,7 @@ class PyFilter(object):
 
                         if found:
                             self.filter(pattern_type, found[0], regex_pattern[1])
-                            
+
                     time.sleep(0.0001)  # Ensure it doesnt kill CPU
 
     def filter(self, pattern_type, found, instant_ban):
