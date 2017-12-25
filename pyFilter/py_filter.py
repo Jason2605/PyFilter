@@ -14,7 +14,7 @@ from .database import SqliteConnection, RedisConnection
 
 class PyFilter(object):
     def __init__(self, file_path="Config/config.json"):
-        with open(file_path) as config:
+        with open(file_path, "r") as config:
             data = json.load(config)
 
         self.settings = data["settings"]
@@ -42,7 +42,7 @@ class PyFilter(object):
 
         while True:
             inode = os.stat(log_file).st_ino
-            with open(log_file) as f:
+            with open(log_file, "r") as f:
                 while True:
                     where = f.tell()
                     line = f.readline()
@@ -58,11 +58,9 @@ class PyFilter(object):
                     for regex_pattern in self.regex[pattern_type]:
                         found = regex_pattern[0].findall(line)
 
-                        if not found:
-                            continue
-
-                        found = found[0]
-                        self.filter(pattern_type, found, regex_pattern[1])
+                        if found:
+                            self.filter(pattern_type, found[0], regex_pattern[1])
+                            
                     time.sleep(0.0001)  # Ensure it doesnt kill CPU
 
     def filter(self, pattern_type, found, instant_ban):
