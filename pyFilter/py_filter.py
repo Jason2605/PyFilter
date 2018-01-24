@@ -79,7 +79,7 @@ class PyFilter(object):
         ip = found[not cond]
         t = datetime.strptime(found[cond], self.rules[pattern_type]["time_format"])
 
-        if cond and int(found[3]) not in self.settings[pattern_type]["http_status_blocks"]:
+        if cond and int(found[3]) not in self.rules[pattern_type]["http_status_blocks"]:
             return
 
         this_year = datetime.now().year
@@ -147,6 +147,11 @@ class PyFilter(object):
             if self.log_settings["active"]:
                 self.log(log_msg)
                 print(log_msg, end='')
+
+            try:
+                del self.ip_dict[pattern_type][ip]  # Delete IP from dictionary as it is getting blacklisted
+            except KeyError:
+                pass
 
             self.blacklist(ip, log_msg=log_msg, ip_type=ip_type)
 
