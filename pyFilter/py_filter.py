@@ -58,11 +58,8 @@ class PyFilter(object):
                     for regex_pattern in self.regex[pattern_type]:
                         found = regex_pattern[0].findall(line)
 
-                        if not found:
-                            continue
-
-                        found = found[0]
-                        self.filter(pattern_type, found, regex_pattern[1])
+                        if found:
+                            self.filter(pattern_type, found[0], regex_pattern[1])
                     time.sleep(0.0001)  # Ensure it doesnt kill CPU
 
     def filter(self, pattern_type, found, instant_ban):
@@ -81,7 +78,7 @@ class PyFilter(object):
         ip = found[not cond]
         t = datetime.strptime(found[cond], self.rules[pattern_type]["time_format"])
 
-        if cond and int(found[3]) not in self.settings[pattern_type]["http_status_blocks"]:
+        if cond and int(found[3]) not in self.rules[pattern_type]["http_status_blocks"]:
             return
 
         this_year = datetime.now().year
@@ -149,6 +146,11 @@ class PyFilter(object):
             if self.log_settings["active"]:
                 self.log(log_msg)
                 print(log_msg, end='')
+
+            try:
+                del self.ip_dict[pattern_type][ip]  # Delete IP from dictionary as it is getting blacklisted
+            except KeyError:
+                pass
 
             self.blacklist(ip, log_msg=log_msg, ip_type=ip_type)
 
