@@ -5,3 +5,5 @@
 test\.py
 
 Config/config\.json
+
+*.pyc
