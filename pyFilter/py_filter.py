@@ -110,7 +110,11 @@ class PyFilter(object):
                 country_log = ""
 
                 if geoip2 is not None:
-                    country = self.reader.country(ip_address).country.name
+                    try:
+                        country = self.reader.country(ip_address).country.name
+                    except geoip2.errors.AddressNotFoundError:
+                        country = "unknown!"
+
                     country_log = "The IP was from {}.".format(
                         country
                     )
@@ -163,7 +167,10 @@ class PyFilter(object):
             country_log = ""
 
             if geoip2 is not None:
-                country = self.reader.country(ip_address).country.name
+                try:
+                    country = self.reader.country(ip_address).country.name
+                except geoip2.errors.AddressNotFoundError:
+                    country = "unknown!"
                 country_log = "The IP was from {}.".format(
                     country
                 )
@@ -281,7 +288,11 @@ class PyFilter(object):
             country_log = ""
 
             if geoip2 is not None:
-                country = self.reader.country(ip_address).country.name
+                try:
+                    country = self.reader.country(ip_address).country.name
+                except geoip2.errors.AddressNotFoundError:
+                    country = "unknown!"
+
                 country_log = "The IP was from {}.".format(
                     country
                 )
