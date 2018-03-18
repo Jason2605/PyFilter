@@ -116,7 +116,6 @@ class RedisConnection:
         Returns:
             Returns a list of all IPs not relating to the name of this "server".
         """
-        now = time.time()
 
         pipe = self.redis_connection.pipeline()
 
@@ -139,7 +138,6 @@ class RedisConnection:
             self.redis_connection.hset(result, self.name, time_banned)
             all_results.append((server, result))
 
-        print("Finished. Took {} seconds!".format(time.time() - now))
         return all_results
 
     def __check_ip(self, ip_address, last=False):
