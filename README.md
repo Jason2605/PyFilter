@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://pyfilter.co.uk"><img src="https://pyfilter.co.uk/static/images/Shield.png" width="200"/></a>
+  <a href="https://pyfilter.co.uk" target="_blank"><img src="https://pyfilter.co.uk/static/images/Shield.png" width="200"/></a>
 </p>
 
 # PyFilter
@@ -18,6 +18,7 @@ Required:
 Optional:
 - [py-redis](https://pypi.python.org/pypi/redis)
 - [redis](https://redis.io)
+- [geoip2](https://geoip2.readthedocs.io/en/latest/)
 
 To install PyFilter download the files from this repo via your preferred method, for example `git clone https://github.com/Jason2605/PyFilter.git`.
 
@@ -50,6 +51,10 @@ Starting/stopping redis
   sudo service redis_6379 stop
   ```
   
+**Optional** Geoip2 will provide the country of the banned ip address.
+To install geopip2
+  `pip install geoip2`
+  
 Configuration:
 -------------
 
@@ -62,8 +67,6 @@ Configuration:
     "deny_type": "DROP",
     "ignored_ips": ["127.0.0.1"],
     "request_time": 5,
-    "check_time": 600,
-    "run_once": true,
     "reload_iptables": true,
     "rules": {
       "ssh": {
@@ -88,19 +91,19 @@ Configuration:
       "apache": {
         "log_file": "",
         "regex_patterns": [
-          ["(\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}) .* \\[(.*)\\] \"POST /({}) HTTP/1.1\" (\\d{{0,3}})", "urls"]
+          ["(.*) .* .* \\[(.*) \\+0000\\] \"POST ({}) HTTP/1\\.1\" .*", "urls"]
         ],
         "time_format": "%d/%b/%Y:%H:%M:%S",
-        "urls": ["login", "admin"],
+        "urls": ["/login/", "/admin/"],
         "http_status_blocks": [200]
       },
       "nginx": {
         "log_file": "",
         "regex_patterns": [
-          ["(\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}\\.\\d{{1,3}}) .* \\[(.*)\\] \"POST /({}) HTTP/1.1\" (\\d{{0,3}})", "urls"]
+          ["(.*) .* .* \\[(.*) \\+0000\\] \"POST ({}) HTTP/1\\.1\" .*", "urls"]
         ],
         "time_format": "%d/%b/%Y:%H:%M:%S",
-        "urls": ["login", "admin"],
+        "urls": ["/login/", "/admin/"],
         "http_status_blocks": [405]
       }
     }

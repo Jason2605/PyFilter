@@ -6,6 +6,11 @@ import subprocess
 import threading
 import time
 
+try:
+    import geoip2.database
+except Exception:
+    geoip2 = None
+
 from datetime import datetime
 
 from .exceptions import DatabaseConfigException
@@ -28,6 +33,9 @@ class PyFilter(object):
         self.ip_dict = {key: {} for key in self.rules}
         self.__setup_regex()
         self.__setup_database(data)
+
+        if geoip2 is not None:
+            self.reader = geoip2.database.Reader("GeoLite2-Country.mmdb")
 
     def read_files(self, log_file, pattern_type="ssh"):
         """
@@ -76,56 +84,70 @@ class PyFilter(object):
 
         cond = pattern_type in ("apache", "nginx")
 
-        ip = found[not cond]
-        t = datetime.strptime(found[cond], self.rules[pattern_type]["time_format"])
+        ip_address = found[not cond]
+        time_obj = datetime.strptime(found[cond], self.rules[pattern_type]["time_format"])
 
         if cond and int(found[3]) not in self.rules[pattern_type]["http_status_blocks"]:
             return
 
         this_year = datetime.now().year
 
-        if t.year != this_year:
-            t = t.replace(year=this_year)  # Assume the request was this year
+        if time_obj.year != this_year:
+            time_obj = time_obj.replace(year=this_year)  # Assume the request was this year
 
-        ip_type = self.__check_ip(ip)
+        ip_type = self.__check_ip(ip_address)
 
         if not ip_type:
-            ip = socket.gethostbyname(ip)
-            ip_type = self.__check_ip(ip)
+            ip_address = socket.gethostbyname(ip_address)
+            ip_type = self.__check_ip(ip_address)
 
-        if ip not in self.settings["ignored_ips"]:
+        if ip_address not in self.settings["ignored_ips"]:
             if instant_ban:
-                if self.database_connection.select(ip) is not None:
+                if self.database_connection.select(ip_address) is not None:
                     return
 
+                country = ""
+                country_log = ""
+
+                if geoip2 is not None:
+                    try:
+                        country = self.reader.country(ip_address).country.name
+                    except geoip2.errors.AddressNotFoundError:
+                        country = "unknown!"
+
+                    country_log = "The IP was from {}.".format(
+                        country
+                    )
+
                 log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
-                          " Acquired an instant ban via {}.\n".format(ip, pattern_type)
+                          " Acquired an instant ban via {}. {}\n".format(ip_address, pattern_type, country_log)
 
                 if self.log_settings["active"]:
                     self.log(log_msg)
                     print(log_msg, end='')
 
-                return self.blacklist(ip, log_msg=log_msg, ip_type=ip_type)
+                return self.blacklist(ip_address, log_msg=log_msg, ip_type=ip_type, country=country)
 
-            if ip not in self.ip_dict[pattern_type]:
-                self.ip_dict[pattern_type][ip] = {"amount": 0, "last_request": None}
-            self.check(ip, pattern_type, t, ip_type)
+            if ip_address not in self.ip_dict[pattern_type]:
+                self.ip_dict[pattern_type][ip_address] = {"amount": 0, "last_request": None}
+            self.check(ip_address, pattern_type, time_obj, ip_type)
 
-    def check(self, ip, pattern_type, time_object, ip_type="v4"):
+    def check(self, ip_address, pattern_type, time_object, ip_type="v4"):
         """
-        Checks if the last known request and current request are within the threshold limit for attempts being added
-        and if so add an attempt.
+        Checks if the last known request and current request are within the
+        threshold limit for attempts being added and if so add an attempt.
 
         Args:
-            ip: IP address as a string to be blacklisted if not already done so
-            pattern_type: A string which selects the correct dictionary to get the amount of failed attempts for that IP
+            ip_address: IP address as a string to be blacklisted if not already done so
+            pattern_type: A string which selects the correct dictionary to get the
+                          amount of failed attempts for that IP
             time_object: A datetime object to check last request time
             ip_type: Differentiates between the v4 and v6 protocols
         """
 
-        old_time_object = self.ip_dict[pattern_type][ip]["last_request"]
+        old_time_object = self.ip_dict[pattern_type][ip_address]["last_request"]
 
-        self.ip_dict[pattern_type][ip]["last_request"] = time_object
+        self.ip_dict[pattern_type][ip_address]["last_request"] = time_object
 
         if old_time_object is None:
             return
@@ -134,41 +156,56 @@ class PyFilter(object):
         if time_since_request > self.settings["request_time"]:
             return  # Returns if the last request was more than the specified time
 
-        self.ip_dict[pattern_type][ip]["amount"] += 1
+        self.ip_dict[pattern_type][ip_address]["amount"] += 1
 
-        if self.ip_dict[pattern_type][ip]["amount"] == self.settings["failed_attempts"]:
+        if self.ip_dict[pattern_type][ip_address]["amount"] == self.settings["failed_attempts"]:
 
-            if self.database_connection.select(ip) is not None:
+            if self.database_connection.select(ip_address) is not None:
                 return
 
+            country = ""
+            country_log = ""
+
+            if geoip2 is not None:
+                try:
+                    country = self.reader.country(ip_address).country.name
+                except geoip2.errors.AddressNotFoundError:
+                    country = "unknown!"
+                country_log = "The IP was from {}.".format(
+                    country
+                )
+
             log_msg = "IP: {} has been blacklisted and the firewall rules have been updated." \
-                      " Acquired 5 bad connections via {}.\n".format(ip, pattern_type)
+                      " Acquired 5 bad connections via {}. {}\n".format(ip_address, pattern_type, country_log)
 
             if self.log_settings["active"]:
                 self.log(log_msg)
                 print(log_msg, end='')
 
             try:
-                del self.ip_dict[pattern_type][ip]  # Delete IP from dictionary as it is getting blacklisted
+                del self.ip_dict[pattern_type][ip_address]  # Remove blacklisted IP
             except KeyError:
                 pass
 
-            self.blacklist(ip, log_msg=log_msg, ip_type=ip_type)
+            self.blacklist(ip_address, log_msg=log_msg, ip_type=ip_type, country=country)
 
-    def blacklist(self, ip, save=True, log_msg="Unknown", ip_type="v4"):
+    def blacklist(self, ip_address, save=True, log_msg="Unknown", ip_type="v4", country=""):
         """
         Blacklists the IP address within iptables and save the IP to the chosen storage
 
         Args:
-            ip: IP address as a string to be blacklisted
+            ip_address: IP address as a string to be blacklisted
             save: Boolean to save the blacklisted IP address to the database
             log_msg: Reason as to why the IP has been banned
             ip_type: Differentiates between the v4 and v6 protocols
+            country: Country of where the IP is from
         """
 
         iptables_type = "iptables" if ip_type == "v4" else "ip6tables"
 
-        blacklist_string = "{} -I INPUT -s {} -j {}".format(iptables_type, ip, self.settings["deny_type"])
+        blacklist_string = "{} -I INPUT -s {} -j {}".format(
+            iptables_type, ip_address, self.settings["deny_type"]
+        )
         subprocess.call(blacklist_string.split())
         self.ip_blacklisted = True
 
@@ -176,7 +213,7 @@ class PyFilter(object):
             return
 
         with self.lock:
-            self.database_connection.insert(ip, log_msg)
+            self.database_connection.insert(ip_address, log_msg, country)
 
     def log(self, log_message):
         """
@@ -211,7 +248,7 @@ class PyFilter(object):
                         subprocess.call([command], stdout=f)
                 self.ip_blacklisted = False
 
-            if not loop:  # Added so this method can be called when PyFilter is closed, without it creating the loop
+            if not loop:
                 return
 
             time.sleep(300)
@@ -224,8 +261,8 @@ class PyFilter(object):
         self.check_redis()
 
         while True:
-            for ip, server_name in self.database_connection.get_bans():
-                self.__redis_ban(server_name, ip)
+            for ip_address, server_name in self.database_connection.get_bans():
+                self.__redis_ban(server_name, ip_address)
 
             time.sleep(self.database_connection.check_time)
 
@@ -234,25 +271,40 @@ class PyFilter(object):
         Checks all previous bans and adds them on startup
         """
 
-        for server_name, ip in self.database_connection.scan():
-            self.__redis_ban(server_name, ip)
+        for server_name, ip_address in self.database_connection.scan():
+            self.__redis_ban(server_name, ip_address)
 
-    def __redis_ban(self, server_name, ip):
+    def __redis_ban(self, server_name, ip_address):
         """
         Function to ban/log IP's found via redis
 
         Args:
             server_name: Name of the server which banned the IP
-            ip: IP to be banned
+            ip_address: IP to be banned
         """
 
         if self.log_settings["active"]:
-            log_message = "Found IP: {} from server: {} - Blacklisting\n".format(ip, server_name)
+
+            country_log = ""
+
+            if geoip2 is not None:
+                try:
+                    country = self.reader.country(ip_address).country.name
+                except geoip2.errors.AddressNotFoundError:
+                    country = "unknown!"
+
+                country_log = "The IP was from {}.".format(
+                    country
+                )
+
+            log_message = "Found IP: {} from server: {} - Blacklisting. {}\n".format(
+                ip_address, server_name, country_log
+            )
             print(log_message, end="")
             self.log(log_message)
 
-        ip_type = self.__check_ip(ip)
-        self.blacklist(ip, False, ip_type=ip_type)
+        ip_type = self.__check_ip(ip_address)
+        self.blacklist(ip_address, False, ip_type=ip_type)
 
     def __setup_regex(self):
         """
@@ -287,12 +339,12 @@ class PyFilter(object):
         else:
             raise DatabaseConfigException("Database has to be redis or sqlite!")
 
-    def __check_ip(self, ip, last=False):
+    def __check_ip(self, ip_address, last=False):
         """
         Checks to see if the given IP is v4 or v6
 
         Args:
-            ip: The ip string to be checked
+            ip_address: The ip string to be checked
             last: A base case to stop recursion
 
         Returns:
@@ -300,12 +352,12 @@ class PyFilter(object):
         """
         ip_type = (socket.AF_INET, "v4") if not last else (socket.AF_INET6, "v6")
         try:
-            socket.inet_pton(ip_type[0], ip)
+            socket.inet_pton(ip_type[0], ip_address)
             return ip_type[1]
         except OSError:
             if last:
                 return False
-            return self.__check_ip(ip, True)
+            return self.__check_ip(ip_address, True)
 
     def run(self):
         """
@@ -339,9 +391,9 @@ class PyFilter(object):
 
         threads.append(threading.Thread(target=self.make_persistent, name="persistent"))
 
-        for t in threads:
-            t.daemon = True
-            t.start()
+        for thread in threads:
+            thread.daemon = True
+            thread.start()
 
         if self.settings["database"] == "redis":
             if self.database_connection.sync_active:
