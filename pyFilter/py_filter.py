@@ -5,6 +5,7 @@ import socket
 import subprocess
 import threading
 import time
+import glob
 
 try:
     import geoip2.database
@@ -376,18 +377,18 @@ class PyFilter(object):
         threads = []
 
         for key in self.rules:
+            log_files_pattern = self.rules[key]["log_files"]
 
-            log_file = self.rules[key]["log_file"]
-
-            if not log_file:
-                print("No file to check within rule: {}".format(key.title()))
+            if not log_files_pattern:
+                print("No log files pattern to check within rule: {}".format(key.title()))
                 continue
 
-            if not os.path.isfile(log_file):
-                print("WARNING: file {} could not be found".format(log_file))
-                continue
+            for log_file in glob.glob(log_files_pattern):
+                if not os.path.isfile(log_file):
+                    print("WARNING: file {} could not be found".format(log_file))
+                    continue
 
-            threads.append(threading.Thread(target=self.read_files, args=(log_file, key), name=key))
+                threads.append(threading.Thread(target=self.read_files, args=(log_file, key), name=key))
 
         threads.append(threading.Thread(target=self.make_persistent, name="persistent"))
 
