@@ -8,7 +8,7 @@
     "reload_iptables": true,
     "rules": {
       "ssh": {
-        "log_file": "/var/log/auth.log",
+        "log_files": "/var/log/auth.log",
         "regex_patterns": [
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
@@ -20,14 +20,14 @@
         "time_format": "%b %d %H:%M:%S"
       },
       "mysql": {
-        "log_file": "",
+        "log_files": "",
         "regex_patterns": [
           "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) .* Access denied for user '.*'@'(.*)' .*"
         ],
         "time_format": "%Y-%m-%d  %H:%M:%S"
       },
       "apache": {
-        "log_file": "",
+        "log_files": "",
         "regex_patterns": [
           ["(.*) .* .* \\[(.*) \\+0000\\] \"POST ({}) HTTP/1\\.1\" .*", "urls"]
         ],
@@ -36,7 +36,7 @@
         "http_status_blocks": [200]
       },
       "nginx": {
-        "log_file": "",
+        "log_files": "",
         "regex_patterns": [
           ["(.*) .* .* \\[(.*) \\+0000\\] \"POST ({}) HTTP/1\\.1\" .*", "urls"]
         ],

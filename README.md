@@ -70,7 +70,7 @@ Configuration:
     "reload_iptables": true,
     "rules": {
       "ssh": {
-        "log_file": "/var/log/auth.log",
+        "log_files": "/var/log/auth.log",
         "regex_patterns": [
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Invalid user .* from (.*) port (.*)",
           "([a-zA-Z]{3}\\s+\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}).* Failed password for .* from (.*) port (.*)",
@@ -82,14 +82,14 @@ Configuration:
         "time_format": "%b %d %H:%M:%S"
       },
       "mysql": {
-        "log_file": "",
+        "log_files": "",
         "regex_patterns": [
           "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) .* Access denied for user '.*'@'(.*)' .*"
         ],
         "time_format": "%Y-%m-%d  %H:%M:%S"
       },
       "apache": {
-        "log_file": "",
+        "log_files": "",
         "regex_patterns": [
           ["(.*) .* .* \\[(.*) \\+0000\\] \"POST ({}) HTTP/1\\.1\" .*", "urls"]
         ],
@@ -98,7 +98,7 @@ Configuration:
         "http_status_blocks": [200]
       },
       "nginx": {
-        "log_file": "",
+        "log_files": "",
         "regex_patterns": [
           ["(.*) .* .* \\[(.*) \\+0000\\] \"POST ({}) HTTP/1\\.1\" .*", "urls"]
         ],
@@ -147,7 +147,7 @@ To swap from sqlite to redis, change the current value `"database": "sqlite"` to
 
 ### Log files
 
-`"log_file": "/var/log/auth.log"` This will read from the specified file, and add bans as the events happen. 
+`"log_files": "/var/log/auth.log"` OR `"log_files": "/var/log/*.log"` This will read from the specified file, or specified pattern of files, and add bans as the events happen. See allowed glob patterns [here.](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch)
 
 ### Regex patterns
 
