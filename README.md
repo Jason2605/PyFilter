@@ -9,6 +9,9 @@ By default PyFilter is configured to read from `/var/log/auth.log` for incoming 
 
 PyFilter uses a database to store all the banned ip addresses to ensure ips arent added more than once. PyFilter currently supports sqlite and redis, by default it is setup to use sqlite so no installation of a redis server is needed. However redis has support for cross server ban syncing (more info below).
 
+## PyFilter-Admin
+[PyFilter-Admin](https://github.com/Jason2605/PyFilter-Admin) is a web interface for viewing statistics about the IPs which have been banned via PyFilter. The system also allows manual IP ban entries via the interface. More info within the readme of the project.
+
 Installation:
 -------------
 
